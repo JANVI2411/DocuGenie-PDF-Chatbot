@@ -1,6 +1,6 @@
-# PDF Question-Answering App (Streamlit + FastAPI + LangChain + RAG)
+# PDF Question-Answering App (LLM + RAG + LangChain + Streamlit + FastAPI)
 
-This project allows users to upload PDFs via a Streamlit frontend. The FastAPI backend processes the uploaded PDF, creates a vector store, and saves the document. Users can ask questions related to the PDF, and the app provides accurate answers using Retrieval-Augmented Generation (RAG) with LangChain and a local HuggingFace LLM pipeline.
+This project allows users to upload PDFs via a Streamlit frontend. The FastAPI and LangChain backend processes the uploaded PDF, creates a vector store using ChromaDB, and saves the document. Users can ask questions related to the PDF, and the app provides accurate answers using Retrieval-Augmented Generation (RAG) with LangChain and a local HuggingFace LLM pipeline.
 
 ## Features
 
