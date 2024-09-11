@@ -1,0 +1,10 @@
+langchain
+langchain-community 
+langchain-huggingface
+langchain-chroma 
+transformers
+sentence-transformers
+pypdf
+pymupdf
+chromadb
+
