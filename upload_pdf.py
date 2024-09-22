@@ -16,9 +16,11 @@ st.title("Upload PDF")
 
 uploaded_file = st.file_uploader("Upload a PDF file", type="pdf")
 
+port = "5000"
+
 if uploaded_file is not None:
     with st.spinner("Uploading PDF..."):
-        API_URL = "http://127.0.0.1:8000/uploadfile/"
+        API_URL = f"http://127.0.0.1:{port}/uploadfile/"
         file_name = uploaded_file.name
         st.session_state.pdf_name = uploaded_file.name
         file_bytes = uploaded_file.read()
@@ -33,17 +35,17 @@ if uploaded_file is not None:
         else:
             st.write("Couldnt upload PDF")
     
-    API_URL = "http://127.0.0.1:8000/start_pdf_processing/"
+    API_URL = f"http://127.0.0.1:{port}/start_pdf_processing/"
     response = requests.post(API_URL, data= { "filename" : file_name})
     if response.status_code == 200:
         with st.spinner("Processing PDF..."):
-            API_URL = "http://127.0.0.1:8000/get_pdf_status/"
+            API_URL = f"http://127.0.0.1:{port}/get_pdf_status/"
             response = requests.get(API_URL)
 
             if response.status_code == 200:
                 msg = response.json()
                 while msg["status"] != "Processed":
-                    API_URL = "http://127.0.0.1:8000/get_pdf_status/"
+                    API_URL = f"http://127.0.0.1:{port}/get_pdf_status/"
                     response = requests.get(API_URL)
                     msg = response.json()
                     time.sleep(5)
