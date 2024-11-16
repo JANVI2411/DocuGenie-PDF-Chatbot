@@ -1,0 +1,15 @@
+{
+    "user_info":[
+        "user_id INTEGER PRIMARY KEY AUTOINCREMENT",
+        "name VARCHAR",
+        "password VARCHAR"
+    ],
+    "pdf_status":[
+        "pdf_id INTEGER PRIMARY KEY AUTOINCREMENT",
+        "user_id INTEGER",
+        "org_name VARCHAR",
+        "saved_name VARCHAR",
+        "description VARCHAR",
+        "status VARCHAR"
+    ]
+}

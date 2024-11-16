@@ -1,11 +1,11 @@
-from fastapi import FastAPI, File, Form, UploadFile, BackgroundTasks
+from fastapi import FastAPI, HTTPException,File, Form, UploadFile, BackgroundTasks
+from pydantic import BaseModel
+import uvicorn
 import os 
 import sys 
 from scripts.pdf_qa import ChatBotModel
-import uvicorn
-import sys
+from database.db_helper import Database
 
-app = FastAPI()
 # uvicorn fastapi_app:app --reload
 UPLOAD_DIRECTORY = "uploaded_pdf"
 if not os.path.exists(UPLOAD_DIRECTORY):
@@ -13,42 +13,84 @@ if not os.path.exists(UPLOAD_DIRECTORY):
 
 print("Loading model...")
 chatbot = ChatBotModel()
+app = FastAPI()
+
+class User(BaseModel):
+    username: str
+    password: str
+
+class PDF(BaseModel):
+    user_id: int
+    description: str 
+
+class ChatModel(BaseModel):
+    user_id: int
+    query: str
+
+class UserModel(BaseModel):
+    user_id: int 
+
+@app.post("/signup")
+def signup(user: User):
+    if user.username in users_db:
+        raise {"message": "Failed"}
+    with Database as db:
+        db.add_record("user_info",{"name":user.username,"password":user.password})
+    return {"message": "Success"}
+
+@app.post("/login")
+def login(user: User):
+    print("login: ",users_db)
+    with Database as db:
+        user_info = db.get_table_data("user_info",{"name":user.username,"password":user.password})
+    if user_info:
+        return {"message": "Success","user_id":user_info[0]["user_id"]}
+    return {"message": "Failed"}
 
 @app.get("/")
 def get_pdf_status():
     return {"status":"success"}
 
 @app.post("/uploadfile/")
-async def upload_file(file: UploadFile = File(...)):
-    # Define the path where the file will be saved
-    file_location = os.path.join(UPLOAD_DIRECTORY, file.filename)
+async def upload_file(file: UploadFile = File(...), pdf: PDF):
+    saved_name = str(uuid.uuid4()).replace("-", "_") + ".pdf"
+    file_location = os.path.join(UPLOAD_DIRECTORY, saved_name)
     
-    # Save the uploaded PDF to the local directory
     with open(file_location, "wb") as f:
         f.write(await file.read())
     
-    return {"filename": file.filename, "msg": "PDF uploaded and saved successfully!"}
+    pdf_info={
+        "user_id":pdf.user_id
+        "org_name":file.filename,
+        "saved_name":saved_name,
+        "description":pdf.description,
+        "status":"Uploaded"
+    }
+    with Database as db:
+        db.add_record("pdf_status",pdf_info)
+    
+    return {"status":"success","filename": file.filename, "msg": "PDF uploaded and saved successfully!"}
 
-@app.post("/start_pdf_processing/")
-async def start_pdf_processing(filename: str = Form(...), background_tasks: BackgroundTasks = BackgroundTasks()):
-    file_location = os.path.join(UPLOAD_DIRECTORY, filename)
-    background_tasks.add_task(chatbot.pdf_parser,file_location)
-    background_tasks.add_task(chatbot.get_vectorstore,filename)
-    return {"status":"Success","msg": "Started processing the PDF."}
+@app.get("/getFiles/")
+def get_pdf_files(user: UserModel):
+    with Database as db:
+        pdf_info = db.get_table_data("pdf_status",{"user_id":user.user_id})
+    
+    data = []
+    for row in pdf_info:
+        data.append({
+            "name":row["org_name"],
+            "description":row["description"],
+            "status":row["status"]
+        })
+    return {"status":"success","msg":"Files are retrived","data":data}
 
-@app.get("/get_pdf_status/")
-def get_pdf_status():
-    return {"status":chatbot.pdf_status}
-
-@app.get("/get_model_status/")
-def get_pdf_status():
-    return {"status":chatbot.llm_status}
 
 @app.post("/chat_with_model/")
-def chat_with_model(query: str = Form(...), pdf_name: str = Form(...)):
-    response = chatbot.invoke_llm(query,pdf_name)
+def chat_with_model(chat : ChatModel):
+    response = chatbot.invoke_llm(chat.query,chat.user_id)
     return {"status":"Success","answer": response}
 
 if __name__ == "__main__":
     print("Running App....")
-    uvicorn.run("fastapi_app:app", host="0.0.0.0", port=5000)
+    uvicorn.run("fastapi_app:app", host="0.0.0.0", port=8000)
